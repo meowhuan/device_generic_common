@@ -26,7 +26,8 @@ PRODUCT_PACKAGES += \
 # Bluetooth HAL
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth-service.default\
-    android.hardware.bluetooth.audio-impl
+    android.hardware.bluetooth.audio-impl \
+    android.hardware.bluetooth.audio-service
 
 # Media codec
 PRODUCT_PACKAGES += \
@@ -42,7 +43,7 @@ PRODUCT_PACKAGES += \
 
 # Gatekeeper HAL
 PRODUCT_PACKAGES += \
-    android.hardware.gatekeeper-service.nonsecure
+    com.android.hardware.gatekeeper.nonsecure
 
 # Health HAL
 PRODUCT_PACKAGES += \

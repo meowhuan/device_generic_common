@@ -161,6 +161,12 @@ service zram_setup /vendor/bin/sh /vendor/etc/init.zram.sh
     disabled
     oneshot
 
+service lid_monitor /system/bin/sh /system/bin/lid_monitor.sh
+    class late_start
+    user root
+    group root system input
+    disabled
+
 on property:system_init.startsurfaceflinger=0
     # disable cursor blinking
     write /dev/tty0 "[?17;0;0c"

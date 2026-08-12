@@ -512,6 +512,11 @@ function init_hal_hwcomposer()
 	esac
 
 	if [[ "$HWC" == "drm_celadon" || "$HWC" == "drm_minigbm_celadon" ]]; then
+		case "$UEVENT" in
+			*Surface*Pro*|*Surface*Book*|*Surface*Laptop*|*Surface*Go*|*Surface*Studio*)
+				MULTI_REFRESH_RATE=${MULTI_REFRESH_RATE:-1}
+				;;
+		esac
 		set_property vendor.hwcomposer.planes.enabling $MULTI_PLANE
 		set_property vendor.hwcomposer.planes.num $MULTI_PLANE_NUM
 		set_property vendor.hwcomposer.preferred.mode.limit $HWC_PREFER_MODE
@@ -728,13 +733,26 @@ function init_hal_sensors()
                 has_sensors=true
                 hal_sensors=iio
                 ;&
+            *Surface*Pro*|*Surface*Book*|*Surface*Laptop*|*Surface*Go*|*Surface*Studio*)
+                has_sensors=true
+                hal_sensors=iio
+                ;;
             *)
                 has_sensors=false
                 ;;
         esac
 
-            # has iio sensor-hub?
+            # has iio sensor-hub? The HID sensor hub probes asynchronously, so
+            # wait for the iio devices to appear before fixing up sysfs
+            # ownership; otherwise the sensors.iio HAL cannot enable channels
+            # and buffers (writes fail / EINVAL).
+            i=0
+            while [ -z "`ls /sys/bus/iio/devices/iio:device* 2> /dev/null`" ] && [ $i -lt 60 ]; do
+                sleep 0.25
+                i=$((i+1))
+            done
             if [ -n "`ls /sys/bus/iio/devices/iio:device* 2> /dev/null`" ]; then
+                sleep 1
                 toybox chown -R 1000.1000 /sys/bus/iio/devices/iio:device*/
                 [ -n "`ls /sys/bus/iio/devices/iio:device*/in_accel_x_raw 2> /dev/null`" ] && has_sensors=true
                 hal_sensors=iio
@@ -752,6 +770,10 @@ function init_hal_sensors()
     fi
 
     set_property ro.iio.accel.quirks "no-trig,no-event"
+    # Surface: accelerometer is served by the gravity sensor channels
+    # (see hardware/intel/libsensors/enumeration.c); force poll mode.
+    set_property ro.iio.gravity.quirks "no-trig,no-event"
+    set_property ro.iio.gravity.name "Accelerometer"
     set_property ro.iio.anglvel.quirks "no-trig,no-event"
     set_property ro.iio.magn.quirks "no-trig,no-event"
     set_property ro.hardware.sensors $hal_sensors
@@ -914,7 +936,42 @@ function do_netconsole()
 
 function do_bootcomplete()
 {
-	hciconfig | grep -q hci || pm disable com.android.bluetooth
+	# Surface devices: lift the EC Smart Charging 80% cap so the battery can
+	# charge to 100%. The cap lives in the EC firmware; the kernel has no
+	# charge-control attribute, so talk to the SAM EC directly. The request
+	# 0x01/0x01/0x43 disables Smart Charging and is idempotent (returns
+	# 02 00 00 00 when already disabled). See linux-surface discussion #986.
+	# Only relevant on devices with the Surface Aggregator EC.
+	if [ -r /sys/class/misc/surface_aggregator/dev ] && command -v ssam_ctrl >/dev/null 2>&1; then
+		# Android's ueventd does not create the ssam cdev node; make it
+		# ourselves from the sysfs dev number (usually 10:121).
+		if [ ! -e /dev/surface/aggregator ]; then
+			mkdir -p /dev/surface
+			devno=$(cat /sys/class/misc/surface_aggregator/dev)
+			mknod /dev/surface/aggregator c ${devno%:*} ${devno#*:}
+		fi
+		ssam_ctrl disable_sc >/dev/null 2>&1
+		log -t init "Surface Smart Charging disabled (SAM EC request 0x43)"
+	fi
+
+	# Surface: closing the Type Cover (lid) should turn the display off; keep Wi-Fi awake.
+	settings put global lid_behavior 1
+	settings put global wifi_suspend_optimizations_enabled 0
+	# Surface: Type Cover posture -> lid bridge daemon (close = screen off,
+	# open = wake, idle deep-sleep after LID_SLEEP_TIMEOUT).
+	if [ -x /system/bin/lid_monitor.sh ]; then
+		setprop ctl.start lid_monitor
+		log -t init "Surface lid monitor started"
+	fi
+	# Surface devices ship an Intel BT controller whose firmware may enumerate
+	# later than bootcomplete; never disable Bluetooth on them.
+	case "$PRODUCT" in
+		Surface*)
+			;;
+		*)
+			hciconfig | grep -q hci || pm disable com.android.bluetooth
+			;;
+	esac
 
 	init_cpu_governor
 
@@ -925,6 +982,10 @@ function do_bootcomplete()
 	case "$PRODUCT" in
 		Surface*Go)
 			echo on > /sys/devices/pci0000:00/0000:00:15.1/i2c_designware.1/power/control
+			;;
+		Surface*Pro*|Surface*Book*|Surface*Laptop*|Surface*Studio*)
+			settings put system min_refresh_rate 120
+			settings put system peak_refresh_rate 120
 			;;
 		VMware*)
 			pm disable com.android.bluetooth

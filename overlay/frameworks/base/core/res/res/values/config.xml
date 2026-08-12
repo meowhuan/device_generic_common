@@ -203,4 +203,7 @@
          rotations as the default behavior. -->
     <bool name="config_allowAllRotations">true</bool>
 
+    <!-- Close the lid to put the device to sleep -->
+    <integer name="config_lidControlsScreenOff">1</integer>
+
 </resources>

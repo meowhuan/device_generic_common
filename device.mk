@@ -77,6 +77,8 @@ PRODUCT_COPY_FILES := \
     $(if $(wildcard $(PRODUCT_DIR)excluded-input-devices.xml),$(PRODUCT_DIR),$(LOCAL_PATH)/)excluded-input-devices.xml:system/etc/excluded-input-devices.xml \
     $(if $(wildcard $(PRODUCT_DIR)init.$(TARGET_PRODUCT).rc),$(PRODUCT_DIR)init.$(TARGET_PRODUCT).rc,$(LOCAL_PATH)/init.x86.rc):root/init.$(TARGET_PRODUCT).rc \
     $(if $(wildcard $(PRODUCT_DIR)ueventd.$(TARGET_PRODUCT).rc),$(PRODUCT_DIR)ueventd.$(TARGET_PRODUCT).rc,$(LOCAL_PATH)/ueventd.x86.rc):$(TARGET_COPY_OUT_VENDOR)/etc/ueventd.rc \
+    $(LOCAL_PATH)/ssam/ssam_ctrl:$(TARGET_COPY_OUT_SYSTEM)/bin/ssam_ctrl \
+    $(LOCAL_PATH)/ssam/lid_monitor.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/lid_monitor.sh \
 
 # Copy System Files
 PRODUCT_COPY_FILES += \
@@ -320,4 +322,3 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_VENDOR_PROPERTIES += drm.service.enabled=true
 
 PRODUCT_REQUIRES_INSECURE_EXECMEM_FOR_SWIFTSHADER := true
-
