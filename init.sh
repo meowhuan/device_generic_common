@@ -936,12 +936,22 @@ function do_netconsole()
 
 function do_bootcomplete()
 {
+	# Surface: load IPU6 camera ISP + ov5693 sensor modules. Early uevent
+	# modprobe attempts fail because /system is not mounted yet, so load
+	# them explicitly here.
+	modprobe intel_ipu6_isys
+	modprobe ov5693
 	# Surface devices: lift the EC Smart Charging 80% cap so the battery can
 	# charge to 100%. The cap lives in the EC firmware; the kernel has no
 	# charge-control attribute, so talk to the SAM EC directly. The request
 	# 0x01/0x01/0x43 disables Smart Charging and is idempotent (returns
 	# 02 00 00 00 when already disabled). See linux-surface discussion #986.
 	# Only relevant on devices with the Surface Aggregator EC.
+	# The ssam cdev misc device is only registered once the
+	# surface_aggregator_cdev module is loaded, so load it explicitly
+	# (nothing else does); otherwise /sys/class/misc/surface_aggregator
+	# never appears and the whole block below is skipped.
+	modprobe surface_aggregator_cdev >/dev/null 2>&1
 	if [ -r /sys/class/misc/surface_aggregator/dev ] && command -v ssam_ctrl >/dev/null 2>&1; then
 		# Android's ueventd does not create the ssam cdev node; make it
 		# ourselves from the sysfs dev number (usually 10:121).
