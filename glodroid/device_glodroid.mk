@@ -12,14 +12,22 @@ PRODUCT_PACKAGES += \
 #    $(LOCAL_PATH)/external_camera_config.xml:$(TARGET_COPY_OUT_VENDOR)/etc/external_camera_config.xml
 
 #Camera HAL
-ifeq ($(BOARD_BUILD_AOSPEXT_LIBCAMERA),true)
+# NOTE: cannot gate on BOARD_LIBCAMERA_USES_MESON_BUILD here: product mk is
+# parsed before BoardConfig.mk, so the variable is undefined at this point and
+# the branch would never run. libcamera is the chosen camera route for the
+# Surface build, so add the packages unconditionally. The raspberry-vanilla
+# meson framework (glodroid/libcamera/android/Android.mk) is itself gated by
+# BOARD_LIBCAMERA_USES_MESON_BUILD in BoardConfig_glodroid.mk.
 PRODUCT_PACKAGES += \
-    ipa_ipu3.so ipa_ipu3.so.sign \
-    camera.libcamera libcamera libcamera-base libcamera-cam lc-compliance \
+    camera.libcamera libcamera libcamera-base \
+    ipa_soft_simple ipa_soft_simple.so.sign uncalibrated.yaml \
     android.hardware.camera.provider@2.5-service_64
 
+# libexif/libjpeg/libyuv vendor variants are installed automatically by
+# soong (vendor_available, pulled in by the external camera provider), so
+# the HAL's runtime deps resolve from /vendor without extra copies.
+
 PRODUCT_PROPERTY_OVERRIDES += ro.hardware.camera=libcamera
-endif
 
 PRODUCT_COPY_FILES +=  \
     frameworks/native/data/etc/android.hardware.camera.concurrent.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.hardware.camera.concurrent.xml \
