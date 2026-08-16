@@ -6,10 +6,9 @@
 
 BCC_PATH := $(patsubst $(CURDIR)/%,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-#BOARD_BUILD_AOSPEXT_LIBCAMERA := true
-#BOARD_LIBCAMERA_SRC_DIR := glodroid/libcamera
-#BOARD_LIBCAMERA_IPAS := ipu3
-#BOARD_LIBCAMERA_PIPELINES := uvcvideo ipu3
+BOARD_LIBCAMERA_USES_MESON_BUILD := true
+BOARD_LIBCAMERA_IPAS := simple
+BOARD_LIBCAMERA_PIPELINES := uvcvideo ipu3 simple
 BOARD_BUILD_AOSPEXT_MESA3D := true
 BOARD_MESA3D_SRC_DIR := external/mesa
 MESON_GEN_LLVM_STUB := true

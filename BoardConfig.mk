@@ -153,6 +153,13 @@ BOARD_KERNEL_CMDLINE += intel_idle.max_cstate=2 cstate=1 tsc=reliable force_tsc_
 
 endif
 
+# GAPPS variant: GMS/Google components lack matching SEPolicy rules,
+# which triggers mass SELinux avc denials (binder/init/system_server).
+# Boot SELinux in permissive mode for the gapps variant only.
+ifeq ($(BLISS_BUILD_VARIANT),gapps)
+BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
+endif
+
 ifeq ($(BOARD_IS_GO_BUILD), true)
 # SVELTE
 MALLOC_SVELTE := true
@@ -195,7 +202,7 @@ BOARD_VENDOR_SEPOLICY_DIRS += $(LOCAL_COMMON_TREE)/sepolicy/vendor \
     vendor/intel/proprietary/houdini/sepolicy
 
 TARGET_FLATTEN_APEX := true
-BOARD_SYSTEMIMAGE_PARTITION_SIZE := 7000000000
+BOARD_SYSTEMIMAGE_PARTITION_SIZE := 8589934592
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 100663296
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
 BOARD_USES_OEMIMAGE := true
