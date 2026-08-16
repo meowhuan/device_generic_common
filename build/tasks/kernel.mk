@@ -97,11 +97,12 @@ ifneq ($(MOD_ENABLED),)
 KERNEL_MODULES_DEP := $(firstword $(wildcard $(TARGET_OUT)/lib/modules/*/modules.dep))
 KERNEL_MODULES_DEP := $(if $(KERNEL_MODULES_DEP),$(KERNEL_MODULES_DEP),$(TARGET_OUT)/lib/modules)
 
-ALL_EXTRA_MODULES := $(patsubst %,$(TARGET_OUT_INTERMEDIATES)/kmodule/%,$(TARGET_EXTRA_KERNEL_MODULES))
-$(ALL_EXTRA_MODULES): $(TARGET_OUT_INTERMEDIATES)/kmodule/%: $(BUILT_KERNEL_TARGET) | $(ACP)
+ALL_EXTRA_MODULES := $(patsubst %,$(TARGET_OUT_INTERMEDIATES)/kmodule/%.done,$(TARGET_EXTRA_KERNEL_MODULES))
+$(ALL_EXTRA_MODULES): $(TARGET_OUT_INTERMEDIATES)/kmodule/%.done: $(BUILT_KERNEL_TARGET) | $(ACP)
 	@echo Building additional kernel module $*
 	$(hide) mkdir -p $(@D) && $(ACP) -fr $(EXTRA_KERNEL_MODULE_PATH_$*) $(@D)
-	$(mk_kernel) M=$(abspath $@) modules || ( rm -rf $@ && exit 1 )
+	$(mk_kernel) M=$(abspath $(@D)) modules || ( rm -rf $(@D) && exit 1 )
+	touch $@
 
 $(KERNEL_MODULES_DEP): $(BUILT_KERNEL_TARGET) $(ALL_EXTRA_MODULES)
 	$(hide) rm -rf $(TARGET_OUT)/lib/modules
